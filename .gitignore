@@ -1,6 +1,5 @@
 # Dependências Node.js
 node_modules/
-package-lock.json
 yarn.lock
 
 # Variáveis de ambiente e secrets
