@@ -1,5 +1,12 @@
 const axios = require('axios');
 
+// Mapa de IDs → nome legível do serviço
+const NOMES_SERVICOS = {
+    servico_banho: "Banho",
+    servico_tosa: "Tosa",
+    servico_banho_tosa: "Banho + Tosa"
+};
+
 async function sendToMeta(body){
     if (process.env.BOT_MODE === "mock") {
         console.log(`🔵 [MOCK] Enviaria: `, JSON.stringify(body,null,2));
@@ -114,4 +121,100 @@ async function sendMainMenu(to){
     return sendToMeta(body);
 }
 
-module.exports = { sendWhatsAppMessage, sendMainMenu };
+async function sendTriagemBanhoTosa(to){
+    const body = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: to,
+        type: "interactive",
+        interactive: {
+            type: "button",
+            body: {
+                text: "Que legal! 🐾\n\nAntes de agendar, uma pergunta rápida pra segurança da equipe e dos outros pets:\n\n✅ Seu pet é dócil com pessoas e outros animais\n✅ Está livre de pulgas e carrapatos\n\nO seu pet está nessas condições?"
+            },
+            action: {
+                buttons: [
+                    {
+                        type: "reply",
+                        reply: {
+                            id: "triagem_ok",
+                            title: "✅ Sim, tudo certo"
+                        }
+                    },
+                    {
+                        type: "reply",
+                        reply: {
+                            id: "triagem_duvida",
+                            title: "❓ Tenho dúvida"
+                        }
+                    }
+                ]
+            }
+        }
+    };
+    return sendToMeta(body);
+}
+
+async function sendEscolhaServico(to){
+    const body = {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: to,
+        type: "interactive",
+        interactive: {
+            type: "button",
+            body: {
+                text: "Perfeito! 💜\n\nQual serviço você quer agendar?"
+            },
+            action: {
+                buttons: [
+                    {
+                        type: "reply",
+                        reply: {
+                            id: "servico_banho",
+                            title: "🛁 Banho"
+                        }
+                    },
+                    {
+                        type: "reply",
+                        reply: {
+                            id: "servico_tosa",
+                            title: "✂️ Tosa"
+                        }
+                    },
+                    {
+                        type: "reply",
+                        reply: {
+                            id: "servico_banho_tosa",
+                            title: "🛁 Banho + Tosa"
+                        }
+                    }
+                ]
+            }
+        }
+    };
+    return sendToMeta(body);
+}
+
+async function sendConfirmacaoAgendamento(to, servicoId) {
+    const nomeServico = NOMES_SERVICOS[servicoId] || "Serviço";
+
+    const texto = `✅ *Solicitação recebida!*
+
+📋 Serviço: *${nomeServico}*
+🐾 Confirmado: pet dócil, sem pulga/carrapato
+
+Vou te passar direto pra Gislaine agora — ela vai combinar dia e horário com você pessoalmente, escolhendo o melhor momento pro seu pet.
+
+Em instantes ela responde por aqui! 💜🐾`;
+
+    return sendWhatsAppMessage(to, texto);
+}
+
+module.exports = { 
+    sendWhatsAppMessage, 
+    sendMainMenu,
+    sendTriagemBanhoTosa,
+    sendEscolhaServico,
+    sendConfirmacaoAgendamento 
+};
