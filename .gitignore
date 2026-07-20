@@ -38,3 +38,6 @@ build/
 
 # Arquivos de teste com dados reais
 tests/fixtures/real-data/
+
+
+evidencias/
