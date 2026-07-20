@@ -22,6 +22,9 @@
   "author": "Matheus Yuri Franco Miguel <matheusyuri.devs@proton.me>",
   "type": "commonjs",
   "main": "src/server.js",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "directories": {
     "doc": "docs"
   },
