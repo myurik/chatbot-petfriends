@@ -211,10 +211,53 @@ Em instantes ela responde por aqui! 💜🐾`;
     return sendWhatsAppMessage(to, texto);
 }
 
+async function sendPedidoEndereco(to){
+    const texto = `🚗 *Leva-e-traz Pet Friends*
+
+Buscamos e trazemos seu pet até a loja pra o banho ou tosa! 🐾
+
+Pra calcular o valor, preciso saber onde você está.
+
+📍 *Digite seu endereço completo*, com rua, número, bairro e cidade.
+
+*Exemplo:*
+Rua das Flores, 100, Centro, Curitiba`;
+
+    return sendWhatsAppMessage(to, texto);
+}
+
+async function sendResumoLevaTraz(to, dados){
+    // Formata valor R$ xx,xx
+    const valorFormatado = dados.valor.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL"
+    });
+
+    // Formata distância "8,5 km"
+    const distanciaFormatada = dados.distanciaKm.toLocaleString("pt-BR") + " km";
+
+    const texto = `🚗 *Leva-e-traz calculado!*
+
+📍 *Endereço:*
+${dados.enderecoFormatado}
+
+📏 *Distância até a loja:* ${distanciaFormatada}
+💰 *Valor:* ${valorFormatado}
+
+*Como funciona:*
+Buscamos seu pet no endereço, trazemos até a loja pra o serviço e depois levamos de volta pra casa. O valor já inclui a ida e volta.
+
+Vou te passar direto pra Gislaine agora — ela combina o dia e horário com você. 💜🐾`;
+
+    return sendWhatsAppMessage(to, texto);
+}
+
 module.exports = { 
     sendWhatsAppMessage, 
     sendMainMenu,
     sendTriagemBanhoTosa,
     sendEscolhaServico,
-    sendConfirmacaoAgendamento 
+    sendConfirmacaoAgendamento,
+    sendPedidoEndereco,
+    sendResumoLevaTraz
 };

@@ -6,19 +6,18 @@ const {
     sendMainMenu, 
     sendTriagemBanhoTosa,
     sendEscolhaServico,
-    sendConfirmacaoAgendamento
+    sendConfirmacaoAgendamento,
+    sendPedidoEndereco,
+    sendResumoLevaTraz
 } = require("./whatsapp");
 const {STATES, getState, setState, clearState } = require("./state")
 const { HORARIO_E_ENDERECO, FORMAS_DE_PAGAMENTO, OUTRA_DUVIDA } = require("./faq");
+const { calcularDistanciaEValor } = require("./maps");
 
 // Textos genéricos reutilizáveis — declarados como constantes
 const HANDOFF_ATENDENTE = `Perfeito! 💜
 
 Já estou passando aqui para Gislaine, ela vai te responder pessoalmente em instantes. Obrigado pela paciência! 🐾`;
-
-const OPCAO_EM_CONSTRUCAO = `Ainda estou aprendendo essa opção 🐾
-
-Enquanto isso, se quiser falar direto com a Gislaine, é só me responder aqui que já te encaminho pra ela!`;
 
 const ID_DESCONHECIDO = `Opa, não entendi essa opção. Vou te passar pra Gislaine!`;
 
@@ -28,8 +27,53 @@ Vou te passar direto pra Gislaine — ela vai te ajudar com sua dúvida sobre ag
 
 Só me dá um instante que ela responde por aqui! 🐾`;
 
+const ENDERECO_NAO_ENCONTRADO = `🤔 *Não encontrei esse endereço*
+
+Pode tentar de novo? Digite com mais detalhes, incluindo rua, número, bairro e cidade.
+
+*Exemplo:*
+Rua das Flores, 100, Centro, Curitiba
+
+Se quiser voltar ao menu, é só me mandar "menu".`;
+
+const ERRO_LEVA_TRAZ = `Ops, tive um probleminha técnico pra calcular o valor agora 😕
+
+Vou te passar direto pra Gislaine — ela vai te ajudar pessoalmente com o valor do leva-e-traz. 💜🐾`;
+
+
 // Handler pra mensagens de texto = sempre mostra menu principal
-async function handleTextMessage(from) {
+async function handleTextMessage(from, text) {
+    const estadoAtual = getState(from);
+    if (estadoAtual === STATES.LEVA_TRAZ_ENDERECO){
+        //Escape: cliente digitou "menu" para sair
+        if(text.trim().toLowerCase() === "menu"){
+            clearState(from);
+            await sendMainMenu(from);
+            return;
+        }
+
+        //Chama Google Maps pra calcular
+        const resultado = await calcularDistanciaEValor(text);
+
+        if(resultado.erro === "endereco_nao_encontrado"){
+            // Mantém o estado, cliente pode tentar de novo
+            await sendWhatsAppMessage(from, ENDERECO_NAO_ENCONTRADO);
+            return;
+        }
+
+        if (resultado.erro) {
+            // Outros erros (erro_api, config_faltando): handoff
+            clearState(from);
+            await sendWhatsAppMessage(from, ERRO_LEVA_TRAZ);
+            return;
+        }
+
+        // Sucesso: mostra resumo e faz handoff
+        clearState(from);
+        await sendResumoLevaTraz(from, resultado);
+        return;
+    }
+    
     await sendMainMenu(from);
 }
 
@@ -42,6 +86,13 @@ async function handleListReply(from, selectedId) {
         return;
     }
     
+    // Caso especial: iniciar fluxo de leva-e-traz
+    if(selectedId === "leva_traz"){
+        setState(from, STATES.LEVA_TRAZ_ENDERECO);
+        await sendPedidoEndereco(from);
+        return;
+    }
+
     let responseText;
 
     switch (selectedId) {
@@ -56,9 +107,6 @@ async function handleListReply(from, selectedId) {
             break;
         case "outra_duvida":
             responseText = OUTRA_DUVIDA;
-            break;
-        case "leva_traz":
-            responseText = OPCAO_EM_CONSTRUCAO;
             break;
         default:
             responseText = ID_DESCONHECIDO;
@@ -103,7 +151,7 @@ async function handleIncomingMessage(message) {
     const from = message.from;
 
     if (message.type === "text") {
-        return handleTextMessage(from);
+        return handleTextMessage(from, message.text.body);
     }
 
     if (message.type === "interactive") {
